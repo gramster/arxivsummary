@@ -36,7 +36,7 @@ def cli():
 @click.option('-v', '--verbose', is_flag=True, help='Show extra diagnostic output.')
 @click.option('-a', '--all', is_flag=True, help='Show all relevant papers in RSS feed, not just those new since the last run.')
 @click.option('-t', '--token', help='OpenAI token, if not from environment.', default='--')
-@click.option('-T', '--topic', help='Topic. Some like AI will expand into multiple.', default='AI')
+@click.option('-T', '--topic', help='Topic. Some (AI,ML,CV,DS,DB,HCI,CC,IOT,TST,DBG,WEB), will expand into multiple.', default='AI')
 def report(out, verbose, all, token, topic):
     if token == '--':
         token = os.environ.get('OPENAI_TOKEN') or ''
