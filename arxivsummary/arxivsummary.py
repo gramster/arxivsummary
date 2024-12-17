@@ -17,6 +17,9 @@ RSS_FEED_URL = "http://export.arxiv.org/rss/cs"  # Example RSS feed
 HOME_DIR = os.path.expanduser("~")
 ANALYZED_IDS_FILE = os.path.join(HOME_DIR, ".arxivsummary", "analyzed_papers.json")
 PDF_DOWNLOAD_DIR = os.path.join(HOME_DIR, ".arxivsummary", "tmp")
+MAX_RETRIES = 5
+
+
 client: openai.OpenAI|None = None
 
 
@@ -46,15 +49,24 @@ def save_analyzed_ids(ids, topics: list[str]):
 # Analyze a paper using OpenAI ChatCompletion
 def analyze_paper(title, abstract, topics):
     assert(client is not None)
-    response = client.chat.completions.create(
-        model="gpt-4",
-        messages=[
-            {"role": "system", "content": "You are a research assistant helping to identify relevant papers."},
-            {"role": "user", "content": f"Is this paper relevant to the topics {topics}? Title: {title} Abstract: {abstract}. Answer 'Yes' or 'No'."}
-        ]
-    )
-    result = response.choices[0].message.content
-    return result.strip() if result else "No"
+    retry = 0
+    while retry < MAX_RETRIES:
+        try:
+            response = client.chat.completions.create(
+                model="gpt-4",
+                messages=[
+                    {"role": "system", "content": "You are a research assistant analyzing papers."},
+                    {"role": "user", "content": f"Analyze the following research paper to determine if it is relevant to the topics {topics}. Title: {title} Abstract: {abstract}"}
+                ]
+            )
+            result = response.choices[0].message.content
+            return result.strip() if result else "No"
+        except Exception as e:
+            print(f"Error analyzing paper: {e}")
+            retry += 1
+
+    print(f"Failed to analyze paper: {title}.")
+    return "No"
 
 
 # Download PDF from arXiv
@@ -84,15 +96,22 @@ def extract_text_from_pdf(pdf_file):
 # Summarize paper text using OpenAI ChatCompletion
 def summarize_text(text):
     assert(client is not None)
-    response = client.chat.completions.create(
-        model="gpt-4o",
-        messages=[
-            {"role": "system", "content": "You are a research assistant summarizing papers."},
-            {"role": "user", "content": f"Summarize the following research paper content in the form of detailed study notes:\n\n{text}"}
-        ]
-    )
-    result = response.choices[0].message.content
-    return result.strip() if result else None
+    retry = 0
+    while retry < MAX_RETRIES:
+        try:
+            response = client.chat.completions.create(
+                model="gpt-4",
+                messages=[
+                    {"role": "system", "content": "You are a research assistant summarizing papers."},
+                    {"role": "user", "content": f"Summarize the following research paper content in the form of detailed study notes:\n\n{text}"}
+                ],
+            )
+            result = response.choices[0].message.content
+            return result.strip() if result else None
+        except Exception as e:
+            print(f"Error summarizing text: {e}")
+            retry += 1
+    return None
 
 
 # Generate Markdown summary
