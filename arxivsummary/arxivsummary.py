@@ -41,36 +41,43 @@ def load_analyzed_ids(topics: list[str]) -> set[str]:
 
 
 # Save analyzed paper IDs
-def save_analyzed_ids(ids, topics: list[str]):
+def save_analyzed_ids(ids, topics: list[str]) -> None:
     with open(ids_file(topics), "w") as f:
         json.dump(list(ids), f)
 
 
 # Analyze a paper using OpenAI ChatCompletion
-def analyze_paper(title, abstract, topics):
+def analyze_paper(title, abstract, topics, model, verbose) -> bool:
     assert(client is not None)
     retry = 0
+    results = []
     while retry < MAX_RETRIES:
         try:
             response = client.chat.completions.create(
-                model="gpt-4",
+                model=model,
                 messages=[
                     {"role": "system", "content": "You are a research assistant analyzing papers."},
-                    {"role": "user", "content": f"Analyze the following research paper to determine if it is relevant to the topics {topics}. Title: {title} Abstract: {abstract}"}
+                    {"role": "user", "content": f"Analyze the following research paper to determine if it is relevant to the topics {topics}. Title: {title} Abstract: {abstract}. Answer only Yes or No."}
                 ]
             )
             result = response.choices[0].message.content
-            return result.strip() if result else "No"
+            results.append(result)
+            if result:
+                result = result.strip().lower()
+                if result in ["yes", "no", "yes.", "no."]:
+                    return result == "yes" or result == "yes."
+            retry += 1
         except Exception as e:
             print(f"Error analyzing paper: {e}")
             retry += 1
 
-    print(f"Failed to analyze paper: {title}.")
-    return "No"
+    if verbose:
+        print(f"Failed to analyze paper: {title}: {results}")
+    return False
 
 
 # Download PDF from arXiv
-def download_pdf(paper_id, paper_link):
+def download_pdf(paper_id, paper_link) -> str | None:
     pdf_url = paper_link.replace("abs", "pdf")
     pdf_file = os.path.join(PDF_DOWNLOAD_DIR, f"{paper_id}.pdf")
     response = requests.get(pdf_url, stream=True)
@@ -83,7 +90,7 @@ def download_pdf(paper_id, paper_link):
 
 
 # Extract text from PDF
-def extract_text_from_pdf(pdf_file):
+def extract_text_from_pdf(pdf_file) -> str | None:
     try:
         reader = PdfReader(pdf_file)
         text = "\n".join([page.extract_text() for page in reader.pages if page.extract_text()])
@@ -94,13 +101,13 @@ def extract_text_from_pdf(pdf_file):
 
 
 # Summarize paper text using OpenAI ChatCompletion
-def summarize_text(text):
+def summarize_text(text, model) -> str | None:
     assert(client is not None)
     retry = 0
     while retry < MAX_RETRIES:
         try:
             response = client.chat.completions.create(
-                model="gpt-4",
+                model=model,
                 messages=[
                     {"role": "system", "content": "You are a research assistant summarizing papers."},
                     {"role": "user", "content": f"Summarize the following research paper content in the form of detailed study notes:\n\n{text}"}
@@ -115,7 +122,7 @@ def summarize_text(text):
 
 
 # Generate Markdown summary
-def generate_summary(out, papers, date_range, topics):
+def generate_summary(out, papers, date_range, topics) -> None:
     if out == '--':
         f = sys.stdout
     else:
@@ -150,10 +157,17 @@ def generate_report(topics: list[str],
                     show_all: bool = False,
                     max_entries: int = -1, 
                     persistent: bool = True,
+                    classify_model: str = 'gpt-3.5-turbo',
+                    summarize_model: str = 'gpt-4-turbo'
                     ):
     #openai.api_key = token
     global client
-    client = openai.OpenAI(api_key=token)
+    if token == 'ollama':
+        print('Using local model')
+        classify_model = summarize_model = 'vanilj/Phi-4'
+        client = openai.OpenAI(base_url='http://localhost:11434/v1/', api_key=token)
+    else:
+        client = openai.OpenAI(api_key=token)
     feed = feedparser.parse(RSS_FEED_URL)
     analyzed_ids = load_analyzed_ids(topics)
     relevant_papers = []
@@ -163,7 +177,9 @@ def generate_report(topics: list[str],
         os.makedirs(PDF_DOWNLOAD_DIR)
 
     count = 0
+    i = 0
     for entry in feed.entries:
+        i += 1
         paper_id = entry.id.split('/')[-1]
         published_date = datetime.fromtimestamp(time.mktime(entry.published_parsed))
 
@@ -174,15 +190,17 @@ def generate_report(topics: list[str],
         title = entry.title
         abstract = entry.summary
 
-        result = analyze_paper(title, abstract, topics)
-        if "Yes" in result:
+        result = analyze_paper(title, abstract, topics, classify_model, verbose)
+        if verbose:
+            print(f'{i}/{len(feed.entries)}> {"yes" if result else "no "}: {title}')
+        if result:
             pdf_file = download_pdf(paper_id, entry.link)
             if pdf_file:
                 paper_text = extract_text_from_pdf(pdf_file)
                 if paper_text:
                     if max_entries >= 0 and count >= max_entries:
                         break                    
-                    summary = summarize_text(paper_text)
+                    summary = summarize_text(paper_text, summarize_model)
                     relevant_papers.append({
                         "title": title,
                         "abstract": abstract,
