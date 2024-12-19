@@ -1,3 +1,5 @@
 .venv
 dist/
 arxivsummary/__pycache__/
+arxiv*.md
+
