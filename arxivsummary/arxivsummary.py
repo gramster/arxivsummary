@@ -169,7 +169,8 @@ def generate_report(topics: list[str],
     else:
         client = openai.OpenAI(api_key=token)
     feed = feedparser.parse(RSS_FEED_URL)
-    analyzed_ids = load_analyzed_ids(topics)
+    last_analyzed_ids = load_analyzed_ids(topics)
+    analyzed_ids = set()
     relevant_papers = []
     examined_dates = []
 
@@ -183,8 +184,12 @@ def generate_report(topics: list[str],
         paper_id = entry.id.split('/')[-1]
         published_date = datetime.fromtimestamp(time.mktime(entry.published_parsed))
 
-        if not show_all and paper_id in analyzed_ids:
-            continue
+        if not show_all:
+            analyzed_ids.add(paper_id)
+            if paper_id in last_analyzed_ids:
+                if verbose:
+                    print(f'{i}/{len(feed.entries)}> old: {title}')                
+                continue
         
         examined_dates.append(published_date)
         title = entry.title
@@ -210,9 +215,7 @@ def generate_report(topics: list[str],
                     })
                     count += 1
 
-        analyzed_ids.add(paper_id)
-
-    if persistent:
+    if persistent and not show_all:
         save_analyzed_ids(analyzed_ids, topics)
 
     if examined_dates:
