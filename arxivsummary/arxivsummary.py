@@ -183,6 +183,9 @@ def generate_report(topics: list[str],
         i += 1
         paper_id = entry.id.split('/')[-1]
         published_date = datetime.fromtimestamp(time.mktime(entry.published_parsed))
+        examined_dates.append(published_date)
+        title = entry.title
+        abstract = entry.summary
 
         if not show_all:
             analyzed_ids.add(paper_id)
@@ -191,10 +194,6 @@ def generate_report(topics: list[str],
                     print(f'{i}/{len(feed.entries)}> old: {title}')                
                 continue
         
-        examined_dates.append(published_date)
-        title = entry.title
-        abstract = entry.summary
-
         result = analyze_paper(title, abstract, topics, classify_model, verbose)
         if verbose:
             print(f'{i}/{len(feed.entries)}> {"yes" if result else "no "}: {title}')
