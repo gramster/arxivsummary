@@ -1,6 +1,6 @@
 """arxivsummary - Arxiv summary report generator. """
 
-__version__ = '0.01'
+__version__ = '0.02'
 
 import os
 import click
