@@ -10,6 +10,12 @@ Use `arxivsummary -h` for help.
 
 For an example report, see https://github.com/gramster/arxivsummary/blob/main/example.md
 
+The example was generated with:
+
+    python -m arxivsummary report -T DBG -t ollama -v
+
+using ollama running locally with the vanilj/Phi-4 model.
+
 ## Development
 
 This project uses `flit`. First install `flit`:
