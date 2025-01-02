@@ -163,7 +163,8 @@ def generate_report(topics: list[str],
     #openai.api_key = token
     global client
     if token == 'ollama':
-        print('Using local model')
+        if verbose:
+            print('Using local model')
         classify_model = summarize_model = 'vanilj/Phi-4'
         client = openai.OpenAI(base_url='http://localhost:11434/v1/', api_key=token)
     else:
@@ -179,6 +180,8 @@ def generate_report(topics: list[str],
 
     count = 0
     i = 0
+    if verbose:
+        print(f"Analyzing {len(feed.entries)} papers")
     for entry in feed.entries:
         i += 1
         paper_id = entry.id.split('/')[-1]
