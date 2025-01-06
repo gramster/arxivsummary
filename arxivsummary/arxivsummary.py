@@ -9,9 +9,9 @@ from datetime import datetime
 from PyPDF2 import PdfReader
 
 
-# Configuration
-RSS_FEED_URL = "http://export.arxiv.org/rss/cs"  # Example RSS feed
+# Note: Feeds are updated daily at midnight Eastern Standard Time.
 
+RSS_FEED_URL = "http://export.arxiv.org/rss/cs"  # RSS feed for CS papers.
 
 # Users home directory
 HOME_DIR = os.path.expanduser("~")
