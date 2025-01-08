@@ -1,6 +1,6 @@
 """arxivsummary - Arxiv summary report generator. """
 
-__version__ = '0.02'
+__version__ = '0.03'
 
 import os
 import click
@@ -36,11 +36,14 @@ def cli():
 @click.option('-v', '--verbose', is_flag=True, help='Show extra diagnostic output.')
 @click.option('-a', '--all', is_flag=True, help='Show all relevant papers in RSS feed, not just those new since the last run.')
 @click.option('-t', '--token', help='OpenAI token, if not from environment.', default='--')
-@click.option('-T', '--topic', help='Topic. Some (AI,ML,CV,DS,DB,HCI,CC,IOT,TST,DBG,WEB), will expand into multiple.', default='AI')
+@click.option('-T', '--topic', help='Comma-separated topic(s). Some (AI,ML,CV,DS,DB,HCI,CC,IOT,TST,DBG,WEB), will expand into multiple.', default='AI')
 def report(out, verbose, all, token, topic):
     if token == '--':
         token = os.environ.get('OPENAI_TOKEN') or ''
-    generate_report(TOPICS[topic] if topic in TOPICS else [topic], token=token,out=out, verbose=verbose, show_all=all)
+    topics = []
+    for t in topic.split(','):
+        topics.extend(TOPICS[t] if t in TOPICS else [t])
+    generate_report(topics, token=token,out=out, verbose=verbose, show_all=all)
 
 
 def main():

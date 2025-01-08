@@ -32,6 +32,10 @@ The following topics are supported, and expand to the terms shown:
     "DBG": ["debugging", "fault localization", "breakpoints", "stack trace"],
     "TST": ["testing", "test automation", "test case generation", "test coverage"],
 
+You can mix and match these; e.g.:
+
+    python -m arxivsummary report -T WEB,IOT,networking -t ollama -v
+
 ## Development
 
 This project uses `flit`. First install `flit`:
