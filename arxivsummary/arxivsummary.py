@@ -3,6 +3,7 @@ import openai
 import json
 import requests
 import os
+import re
 import sys
 import time
 from datetime import datetime
@@ -134,16 +135,22 @@ def generate_summary(out, papers, date_range, topics) -> None:
     f.write(f"### Topics:\n{sep.join(topics)}\n\n\n")    
 
     for paper in papers:
-        f.write(f"## {paper['title']}\n")
-        f.write(f"**Link:** [{paper['link']}]({paper['link']})\n\n")
+        f.write(f"- [{paper['title']}](#{paper['target']})\n")
+    f.write("\n\n---\n\n")
+
+    for paper in papers:
+        f.write(f"<a name=\"{paper['target']}\">\n")
+        f.write(f"## [{paper['title']}](#summary-of-{paper['target']})\n</a>\n")       
+        f.write(f"**Link:** [{paper['link']}]({paper['link']})\n\n")      
         f.write(f"**Abstract:** {paper['abstract']}\n\n")
         f.write(f"**Analysis:** {paper['analysis']}\n\n")
         f.write("---\n\n")
 
     for paper in papers:
-        f.write(f"## {paper['title']}\n")
+        f.write(f"<a name=\"summary-of-{paper['target']}\">\n")        
+        f.write(f"## Summary of {paper['title']}\n</a>\n")
         f.write(f"**Link:** [{paper['link']}]({paper['link']})\n\n")
-        f.write(f"**PDF Summary:** {paper['summary']}\n\n")
+        f.write(f"**Summary:** {paper['summary']}\n\n")
         f.write("---\n\n")
 
     if out != '--':
@@ -213,7 +220,8 @@ def generate_report(topics: list[str],
                         "abstract": abstract,
                         "link": entry.link,
                         "analysis": result,
-                        "summary": summary
+                        "summary": summary,
+                        "target": re.sub(r'[^a-z\-]', '', title.lower().replace(' ','-'))   
                     })
                     count += 1
 
