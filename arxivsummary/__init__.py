@@ -36,7 +36,7 @@ def cli():
 @click.option('-v', '--verbose', is_flag=True, help='Show extra diagnostic output.')
 @click.option('-a', '--all', is_flag=True, help='Show all relevant papers in RSS feed, not just those new since the last run.')
 @click.option('-t', '--token', help='OpenAI token, if not from environment. Use \'ollama\' to use default local model.', default='--')
-@click.option('-c', '--classify', help='Model to use for classification.', default='vanilj/Phi-4')
+@click.option('-c', '--classify', help='Model to use for classification.', default='phi-4')
 @click.option('-s', '--summarize', help='Model to use for summarization.', default='gpt-4-turbo')
 @click.option('-T', '--topic', help='Comma-separated topic(s). Some (AI,ML,CV,DS,DB,HCI,CC,IOT,TST,DBG,WEB), will expand into multiple.', default='AI')
 def report(out, verbose, all, token, classify, summarize, topic):

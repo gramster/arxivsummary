@@ -14,7 +14,7 @@ The example was generated with:
 
     python -m arxivsummary report -T DBG -t ollama -v
 
-using ollama running locally with the vanilj/Phi-4 model.
+using ollama running locally with the phi-4 model.
 
 The following topics are supported, and expand to the terms shown:
 
@@ -61,8 +61,4 @@ To publish to PyPI:
 ```
 flit publish
 ```
-
-## Version History
-
-0.1 Initial release
 

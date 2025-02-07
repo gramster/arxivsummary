@@ -25,6 +25,20 @@ openai_client: openai.OpenAI|None = None
 local_client: openai.OpenAI|None = None
 
 
+def is_local_model(model: str) -> bool:
+    if '/' in model:
+        return True
+    if model in [
+        'deepseek-r1',
+        'gemma2',
+        'gemma2:27b',
+        'mistral', 
+        'phi4'
+    ]:
+        return True
+    return False
+
+
 def ids_file(topics: list[str]) -> str:
     return os.path.join(HOME_DIR, ".arxivsummary", f"analyzed_papers_{'_'.join(sorted(topics))}.json")
 
@@ -50,7 +64,7 @@ def save_analyzed_ids(ids, topics: list[str]) -> None:
 
 # Analyze a paper using OpenAI ChatCompletion
 def analyze_paper(title, abstract, topics, model, verbose) -> bool:
-    client = local_client if '/' in model else openai_client
+    client = local_client if is_local_model(model) else openai_client
     assert(client is not None)
     retry = 0
     results = []
@@ -105,7 +119,7 @@ def extract_text_from_pdf(pdf_file) -> str | None:
 
 # Summarize paper text using OpenAI ChatCompletion
 def summarize_text(text, model) -> str | None:
-    client = local_client if '/' in model else openai_client    
+    client = local_client if is_local_model(model) else openai_client    
     assert(client is not None)
     retry = 0
     while retry < MAX_RETRIES:
@@ -167,14 +181,14 @@ def generate_report(topics: list[str],
                     show_all: bool = False,
                     max_entries: int = -1, 
                     persistent: bool = True,
-                    classify_model: str = 'vanilj/Phi-4',
+                    classify_model: str = 'phi-4',
                     summarize_model: str = 'gpt-4-turbo'
                     ):
     #openai.api_key = token
     global openai_client, local_client
     local_client = openai.OpenAI(base_url='http://localhost:11434/v1/', api_key='ollama')
     if token == 'ollama':
-        classify_model = summarize_model = 'vanilj/Phi-4'
+        classify_model = summarize_model = 'phi-4'
     elif token is not None:
         openai_client = openai.OpenAI(api_key=token)        
 
