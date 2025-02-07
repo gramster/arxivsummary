@@ -21,7 +21,8 @@ PDF_DOWNLOAD_DIR = os.path.join(HOME_DIR, ".arxivsummary", "tmp")
 MAX_RETRIES = 5
 
 
-client: openai.OpenAI|None = None
+openai_client: openai.OpenAI|None = None
+local_client: openai.OpenAI|None = None
 
 
 def ids_file(topics: list[str]) -> str:
@@ -49,6 +50,7 @@ def save_analyzed_ids(ids, topics: list[str]) -> None:
 
 # Analyze a paper using OpenAI ChatCompletion
 def analyze_paper(title, abstract, topics, model, verbose) -> bool:
+    client = local_client if '/' in model else openai_client
     assert(client is not None)
     retry = 0
     results = []
@@ -103,6 +105,7 @@ def extract_text_from_pdf(pdf_file) -> str | None:
 
 # Summarize paper text using OpenAI ChatCompletion
 def summarize_text(text, model) -> str | None:
+    client = local_client if '/' in model else openai_client    
     assert(client is not None)
     retry = 0
     while retry < MAX_RETRIES:
@@ -164,18 +167,17 @@ def generate_report(topics: list[str],
                     show_all: bool = False,
                     max_entries: int = -1, 
                     persistent: bool = True,
-                    classify_model: str = 'gpt-3.5-turbo',
+                    classify_model: str = 'vanilj/Phi-4',
                     summarize_model: str = 'gpt-4-turbo'
                     ):
     #openai.api_key = token
-    global client
+    global openai_client, local_client
+    local_client = openai.OpenAI(base_url='http://localhost:11434/v1/', api_key='ollama')
     if token == 'ollama':
-        if verbose:
-            print('Using local model')
         classify_model = summarize_model = 'vanilj/Phi-4'
-        client = openai.OpenAI(base_url='http://localhost:11434/v1/', api_key=token)
-    else:
-        client = openai.OpenAI(api_key=token)
+    elif token is not None:
+        openai_client = openai.OpenAI(api_key=token)        
+
     feed = feedparser.parse(RSS_FEED_URL)
     last_analyzed_ids = load_analyzed_ids(topics)
     analyzed_ids = set()
@@ -199,7 +201,7 @@ def generate_report(topics: list[str],
 
         if not show_all:
             analyzed_ids.add(paper_id)
-            if paper_id in last_analyzed_ids:
+            if paper_id in last_analyzed_ids or entry['arxiv_announce_type'].startswith('replace'):
                 if verbose:
                     print(f'{i}/{len(feed.entries)}> old: {title}')                
                 continue
