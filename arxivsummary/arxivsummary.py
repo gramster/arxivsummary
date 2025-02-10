@@ -170,7 +170,7 @@ def generate_report(topics: list[str],
                     max_entries: int = -1, 
                     persistent: bool = True,
                     classify_model: str = 'ollama/phi-4',
-                    summarize_model: str = 'openai/gpt-4-turbo'
+                    summarize_model: str = 'openai/gpt-4o-mini'
                     ):
     local_client = openai.OpenAI(base_url='http://localhost:11434/v1/', api_key='ollama')
     if token is not None:
