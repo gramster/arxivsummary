@@ -21,24 +21,6 @@ PDF_DOWNLOAD_DIR = os.path.join(HOME_DIR, ".arxivsummary", "tmp")
 MAX_RETRIES = 5
 
 
-openai_client: openai.OpenAI|None = None
-local_client: openai.OpenAI|None = None
-
-
-def is_local_model(model: str) -> bool:
-    if '/' in model:
-        return True
-    if model in [
-        'deepseek-r1',
-        'gemma2',
-        'gemma2:27b',
-        'mistral', 
-        'phi4'
-    ]:
-        return True
-    return False
-
-
 def ids_file(topics: list[str]) -> str:
     return os.path.join(HOME_DIR, ".arxivsummary", f"analyzed_papers_{'_'.join(sorted(topics))}.json")
 
@@ -63,8 +45,7 @@ def save_analyzed_ids(ids, topics: list[str]) -> None:
 
 
 # Analyze a paper using OpenAI ChatCompletion
-def analyze_paper(title, abstract, topics, model, verbose) -> bool:
-    client = local_client if is_local_model(model) else openai_client
+def analyze_paper(title, abstract, topics, client, model, verbose) -> bool:
     assert(client is not None)
     retry = 0
     results = []
@@ -118,8 +99,7 @@ def extract_text_from_pdf(pdf_file) -> str | None:
 
 
 # Summarize paper text using OpenAI ChatCompletion
-def summarize_text(text, model) -> str | None:
-    client = local_client if is_local_model(model) else openai_client    
+def summarize_text(text, client, model) -> str | None:    
     assert(client is not None)
     retry = 0
     while retry < MAX_RETRIES:
@@ -174,6 +154,14 @@ def generate_summary(out, papers, date_range, topics) -> None:
         f.close()
 
 
+def parse_model(model: str, local_client: openai.OpenAI, openai_client: openai.OpenAI) -> tuple[openai.OpenAI, str]:
+    client, model_name = model.split('/')
+    if client == 'openai':
+        return openai_client, model_name
+    else:
+        return local_client, model_name
+    
+
 def generate_report(topics: list[str],
                     token: str|None = os.environ.get("OPENAI_TOKEN"),
                     out: str|None = None, 
@@ -181,16 +169,14 @@ def generate_report(topics: list[str],
                     show_all: bool = False,
                     max_entries: int = -1, 
                     persistent: bool = True,
-                    classify_model: str = 'phi-4',
-                    summarize_model: str = 'gpt-4-turbo'
+                    classify_model: str = 'ollama/phi-4',
+                    summarize_model: str = 'openai/gpt-4-turbo'
                     ):
-    #openai.api_key = token
-    global openai_client, local_client
     local_client = openai.OpenAI(base_url='http://localhost:11434/v1/', api_key='ollama')
-    if token == 'ollama':
-        classify_model = summarize_model = 'phi-4'
-    elif token is not None:
+    if token is not None:
         openai_client = openai.OpenAI(api_key=token)        
+    classify_client, classify_model = parse_model(classify_model, local_client, openai_client)
+    summarize_client, summarize_model = parse_model(summarize_model, local_client, openai_client)    
 
     feed = feedparser.parse(RSS_FEED_URL)
     last_analyzed_ids = load_analyzed_ids(topics)
@@ -220,7 +206,7 @@ def generate_report(topics: list[str],
                     print(f'{i}/{len(feed.entries)}> old: {title}')                
                 continue
         
-        result = analyze_paper(title, abstract, topics, classify_model, verbose)
+        result = analyze_paper(title, abstract, topics, classify_client, classify_model, verbose)
         if verbose:
             print(f'{i}/{len(feed.entries)}> {"yes" if result else "no "}: {title}')
         if result:
@@ -230,7 +216,7 @@ def generate_report(topics: list[str],
                 if paper_text:
                     if max_entries >= 0 and count >= max_entries:
                         break                    
-                    summary = summarize_text(paper_text, summarize_model)
+                    summary = summarize_text(paper_text, summarize_client, summarize_model)
                     relevant_papers.append({
                         "title": title,
                         "abstract": abstract,

@@ -12,7 +12,7 @@ For an example report, see https://github.com/gramster/arxivsummary/blob/main/ex
 
 The example was generated with:
 
-    python -m arxivsummary report -T DBG -t ollama -v
+    python -m arxivsummary report -T DBG -t --summarize=ollama/phi-4 -v
 
 using ollama running locally with the phi-4 model.
 
@@ -34,7 +34,7 @@ The following topics are supported, and expand to the terms shown:
 
 You can mix and match these; e.g.:
 
-    python -m arxivsummary report -T WEB,IOT,networking -t ollama -v
+    python -m arxivsummary report -T WEB,IOT,networking -v
 
 ## Development
 
