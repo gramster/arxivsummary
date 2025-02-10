@@ -35,13 +35,11 @@ def cli():
 @click.option('-o', '--out', type=click.Path(), help='Write output to specified file. Use "--" for stdout.')
 @click.option('-v', '--verbose', is_flag=True, help='Show extra diagnostic output.')
 @click.option('-a', '--all', is_flag=True, help='Show all relevant papers in RSS feed, not just those new since the last run.')
-@click.option('-t', '--token', help='OpenAI token, if not from environment.', default='--')
-@click.option('-c', '--classify', help='Model to use for classification.', default='ollama/phi-4')
+@click.option('-t', '--token', help='OpenAI token, if not from OPENAI_API_KEY.', default='')
+@click.option('-c', '--classify', help='Model to use for classification.', default='ollama/phi4')
 @click.option('-s', '--summarize', help='Model to use for summarization.', default='openai/gpt-4-turbo')
 @click.option('-T', '--topic', help='Comma-separated topic(s). Some (AI,ML,CV,DS,DB,HCI,CC,IOT,TST,DBG,WEB), will expand into multiple.', default='AI')
 def report(out, verbose, all, token, classify, summarize, topic):
-    if token == '--':
-        token = os.environ.get('OPENAI_TOKEN') or ''
     topics = []
     for t in topic.split(','):
         topics.extend(TOPICS[t] if t in TOPICS else [t])

@@ -156,10 +156,10 @@ def generate_summary(out, papers, date_range, topics) -> None:
 
 def parse_model(model: str, local_client: openai.OpenAI, openai_client: openai.OpenAI) -> tuple[openai.OpenAI, str]:
     client, model_name = model.split('/')
-    if client == 'openai':
-        return openai_client, model_name
+    if client.strip() == 'openai':
+        return openai_client, model_name.strip()
     else:
-        return local_client, model_name
+        return local_client, model_name.strip()
     
 
 def generate_report(topics: list[str],
@@ -169,11 +169,13 @@ def generate_report(topics: list[str],
                     show_all: bool = False,
                     max_entries: int = -1, 
                     persistent: bool = True,
-                    classify_model: str = 'ollama/phi-4',
+                    classify_model: str = 'ollama/phi4',
                     summarize_model: str = 'openai/gpt-4o-mini'
                     ):
     local_client = openai.OpenAI(base_url='http://localhost:11434/v1/', api_key='ollama')
-    if token is not None:
+    if not token:
+        token = os.environ.get('OPENAI_API_KEY')    
+    if token:
         openai_client = openai.OpenAI(api_key=token)        
     classify_client, classify_model = parse_model(classify_model, local_client, openai_client)
     summarize_client, summarize_model = parse_model(summarize_model, local_client, openai_client)    
