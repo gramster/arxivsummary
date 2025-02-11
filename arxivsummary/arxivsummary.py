@@ -120,7 +120,7 @@ def summarize_text(text, client, model) -> str | None:
 
 
 # Generate Markdown summary
-def generate_summary(out, papers, date_range, topics) -> None:
+def output_report(out, papers, date_range, topics, include_summaries) -> None:
     if out == '--':
         f = sys.stdout
     else:
@@ -137,18 +137,22 @@ def generate_summary(out, papers, date_range, topics) -> None:
 
     for paper in papers:
         f.write(f"<a name=\"{paper['target']}\">\n")
-        f.write(f"## [{paper['title']}](#summary-of-{paper['target']})\n</a>\n")       
-        f.write(f"**Link:** [{paper['link']}]({paper['link']})\n\n")      
+        if include_summaries:
+            f.write(f"## [{paper['title']}](#summary-of-{paper['target']})\n</a>\n")       
+            f.write(f"**Link:** [{paper['link']}]({paper['link']})\n\n")      
+        else:
+            f.write(f"## [{paper['title']}]({paper['link']})\n</a>\n")              
         f.write(f"**Abstract:** {paper['abstract']}\n\n")
         f.write(f"**Analysis:** {paper['analysis']}\n\n")
         f.write("---\n\n")
 
-    for paper in papers:
-        f.write(f"<a name=\"summary-of-{paper['target']}\">\n")        
-        f.write(f"## Summary of {paper['title']}\n</a>\n")
-        f.write(f"**Link:** [{paper['link']}]({paper['link']})\n\n")
-        f.write(f"**Summary:** {paper['summary']}\n\n")
-        f.write("---\n\n")
+    if include_summaries:
+        for paper in papers:
+            f.write(f"<a name=\"summary-of-{paper['target']}\">\n")        
+            f.write(f"## Summary of {paper['title']}\n</a>\n")
+            f.write(f"**Link:** [{paper['link']}]({paper['link']})\n\n")
+            f.write(f"**Summary:** {paper['summary']}\n\n")
+            f.write("---\n\n")
 
     if out != '--':
         f.close()
@@ -170,7 +174,7 @@ def generate_report(topics: list[str],
                     max_entries: int = -1, 
                     persistent: bool = True,
                     classify_model: str = 'ollama/phi4',
-                    summarize_model: str = 'openai/gpt-4o-mini'
+                    summarize_model: str = ''
                     ):
     local_client = openai.OpenAI(base_url='http://localhost:11434/v1/', api_key='ollama')
     if not token:
@@ -178,7 +182,10 @@ def generate_report(topics: list[str],
     if token:
         openai_client = openai.OpenAI(api_key=token)        
     classify_client, classify_model = parse_model(classify_model, local_client, openai_client)
-    summarize_client, summarize_model = parse_model(summarize_model, local_client, openai_client)    
+    if summarize_model:
+        summarize_client, summarize_model = parse_model(summarize_model, local_client, openai_client)
+    else:
+        summarize_client, summarize_model = None, None
 
     feed = feedparser.parse(RSS_FEED_URL)
     last_analyzed_ids = load_analyzed_ids(topics)
@@ -218,7 +225,8 @@ def generate_report(topics: list[str],
                 if paper_text:
                     if max_entries >= 0 and count >= max_entries:
                         break                    
-                    summary = summarize_text(paper_text, summarize_client, summarize_model)
+                    summary = summarize_text(paper_text, summarize_client, summarize_model) if \
+                        summarize_model else ''
                     relevant_papers.append({
                         "title": title,
                         "abstract": abstract,
@@ -237,7 +245,7 @@ def generate_report(topics: list[str],
     else:
         date_range = "No new papers examined"
 
-    generate_summary(out, relevant_papers, date_range, topics)
+    output_report(out, relevant_papers, date_range, topics, bool(summarize_model))
     # Delete the PDF download directory and its contents
     if os.path.exists(PDF_DOWNLOAD_DIR):
         for file in os.listdir(PDF_DOWNLOAD_DIR):

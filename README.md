@@ -14,7 +14,9 @@ The example was generated with:
 
     python -m arxivsummary report -T DBG -t --summarize=ollama/phi-4 -v
 
-using ollama running locally with the phi-4 model.
+using ollama running locally with the phi-4 model. To use openai models, make
+sure to prepend an 'openai/' prefix to the model name. By default summaries are
+not created; you must use --summarize if you want them.
 
 The following topics are supported, and expand to the terms shown:
 

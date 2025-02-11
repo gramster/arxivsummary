@@ -1,6 +1,6 @@
 """arxivsummary - Arxiv summary report generator. """
 
-__version__ = '0.6'
+__version__ = '0.7'
 
 import os
 import click
@@ -37,7 +37,7 @@ def cli():
 @click.option('-a', '--all', is_flag=True, help='Show all relevant papers in RSS feed, not just those new since the last run.')
 @click.option('-t', '--token', help='OpenAI token, if not from OPENAI_API_KEY.', default='')
 @click.option('-c', '--classify', help='Model to use for classification.', default='ollama/phi4')
-@click.option('-s', '--summarize', help='Model to use for summarization.', default='openai/gpt-4o-mini')
+@click.option('-s', '--summarize', help='Model to use for summarization, if any (e.g. openai/gpt-4o-mini).', default='')
 @click.option('-T', '--topic', help='Comma-separated topic(s). Some (AI,ML,CV,DS,DB,HCI,CC,IOT,TST,DBG,WEB), will expand into multiple.', default='AI')
 def report(out, verbose, all, token, classify, summarize, topic):
     topics = []
