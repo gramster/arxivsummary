@@ -120,7 +120,7 @@ def summarize_text(text, client, model) -> str | None:
 
 
 # Generate Markdown summary
-def output_report(out, papers, date_range, topics, include_summaries) -> None:
+def output_report(out, papers, date_range, topics, include_summaries, include_json) -> None:
     if out == '--':
         f = sys.stdout
     else:
@@ -157,6 +157,11 @@ def output_report(out, papers, date_range, topics, include_summaries) -> None:
     if out != '--':
         f.close()
 
+    if include_json and out != '--':
+        json_file = out.replace('.md', '.json') if out else report_file(date_range, topics).replace('.md', '.json')
+        with open(json_file, "w") as json_f:
+            json.dump(papers, json_f, indent=4)
+
 
 def parse_model(model: str, local_client: openai.OpenAI, openai_client: openai.OpenAI) -> tuple[openai.OpenAI, str]:
     client, model_name = model.split('/')
@@ -174,7 +179,8 @@ def generate_report(topics: list[str],
                     max_entries: int = -1, 
                     persistent: bool = True,
                     classify_model: str = 'ollama/phi4',
-                    summarize_model: str = ''
+                    summarize_model: str = '',
+                    include_json: bool = False,
                     ):
     local_client = openai.OpenAI(base_url='http://localhost:11434/v1/', api_key='ollama')
     if not token:
@@ -215,27 +221,32 @@ def generate_report(topics: list[str],
                     print(f'{i}/{len(feed.entries)}> old: {title}')                
                 continue
         
-        result = analyze_paper(title, abstract, topics, classify_client, classify_model, verbose)
+        include = analyze_paper(title, abstract, topics, classify_client, classify_model, verbose)
         if verbose:
-            print(f'{i}/{len(feed.entries)}> {"yes" if result else "no "}: {title}')
-        if result:
-            pdf_file = download_pdf(paper_id, entry.link)
-            if pdf_file:
-                paper_text = extract_text_from_pdf(pdf_file)
-                if paper_text:
-                    if max_entries >= 0 and count >= max_entries:
-                        break                    
-                    summary = summarize_text(paper_text, summarize_client, summarize_model) if \
-                        summarize_model else ''
-                    relevant_papers.append({
-                        "title": title,
-                        "abstract": abstract,
-                        "link": entry.link,
-                        "analysis": result,
-                        "summary": summary,
-                        "target": re.sub(r'[^a-z\-]', '', title.lower().replace(' ','-'))   
-                    })
-                    count += 1
+            print(f'{i}/{len(feed.entries)}> {"yes" if include else "no "}: {title}')
+        if include:
+            summary = paper_text = ''
+            if summarize_model: 
+                include = False
+                pdf_file = download_pdf(paper_id, entry.link)
+                if pdf_file:
+                    paper_text = extract_text_from_pdf(pdf_file)
+                    if paper_text:                
+                        summary = summarize_text(paper_text, summarize_client, summarize_model)
+                        include = True
+
+            if include:
+                relevant_papers.append({
+                    "title": title,
+                    "abstract": abstract,
+                    "link": entry.link,
+                    "analysis": include,
+                    "summary": summary,
+                    "target": re.sub(r'[^a-z\-]', '', title.lower().replace(' ','-'))   
+                })
+            count += 1
+            if max_entries >= 0 and count >= max_entries:
+                break               
 
     if persistent and not show_all:
         save_analyzed_ids(analyzed_ids, topics)
@@ -245,7 +256,7 @@ def generate_report(topics: list[str],
     else:
         date_range = "No new papers examined"
 
-    output_report(out, relevant_papers, date_range, topics, bool(summarize_model))
+    output_report(out, relevant_papers, date_range, topics, bool(summarize_model), include_json)
     # Delete the PDF download directory and its contents
     if os.path.exists(PDF_DOWNLOAD_DIR):
         for file in os.listdir(PDF_DOWNLOAD_DIR):

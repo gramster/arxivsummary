@@ -35,16 +35,17 @@ def cli():
 @click.option('-o', '--out', type=click.Path(), help='Write output to specified file. Use "--" for stdout.')
 @click.option('-v', '--verbose', is_flag=True, help='Show extra diagnostic output.')
 @click.option('-a', '--all', is_flag=True, help='Show all relevant papers in RSS feed, not just those new since the last run.')
+@click.option('-j', '--json', is_flag=True, help='Include a JSON version of the resulting data.')
 @click.option('-t', '--token', help='OpenAI token, if not from OPENAI_API_KEY.', default='')
 @click.option('-c', '--classify', help='Model to use for classification.', default='ollama/phi4')
 @click.option('-s', '--summarize', help='Model to use for summarization, if any (e.g. openai/gpt-4o-mini).', default='')
 @click.option('-T', '--topic', help='Comma-separated topic(s). Some (AI,ML,CV,DS,DB,HCI,CC,IOT,TST,DBG,WEB), will expand into multiple.', default='AI')
-def report(out, verbose, all, token, classify, summarize, topic):
+def report(out, verbose, all, json, token, classify, summarize, topic):
     topics = []
     for t in topic.split(','):
         topics.extend(TOPICS[t] if t in TOPICS else [t])
     generate_report(topics, token=token,out=out, verbose=verbose, show_all=all, \
-                    classify_model=classify, summarize_model=summarize)
+                    classify_model=classify, summarize_model=summarize, include_json=json)
 
 
 def main():
