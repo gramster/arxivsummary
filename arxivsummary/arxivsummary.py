@@ -12,7 +12,7 @@ from PyPDF2 import PdfReader
 
 # Note: Feeds are updated daily at midnight Eastern Standard Time.
 
-RSS_FEED_URL = "http://export.arxiv.org/rss/cs"  # RSS feed for CS papers.
+RSS_FEED_URL = "http://rss.arxiv.org/rss/cs"  # RSS feed for CS papers.
 
 # Users home directory
 HOME_DIR = os.path.expanduser("~")
