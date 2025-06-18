@@ -2,4 +2,5 @@
 dist/
 arxivsummary/__pycache__/
 arxiv*.md
+arxiv*.json
 
